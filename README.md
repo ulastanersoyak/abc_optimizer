@@ -1,4 +1,4 @@
-# artificial bee colony (abc) algorithm explained
+# artificial bee colony (abc) algorithm 
 
 ## what is abc?
 the artificial bee colony algorithm is inspired by how honey bees find and share information about food sources. it's used to solve optimization problems by mimicking how bee colonies work together to find the best food sources.
