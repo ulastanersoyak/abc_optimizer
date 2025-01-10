@@ -2,26 +2,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-class abc_optimizer:
+class ABCOptimizer:
     def __init__(self, objective_func, bounds,
                  colony_size=100, max_iterations=200):
-
         self.objective_func = objective_func
         self.bounds = bounds
         self.colony_size = colony_size
         self.max_iterations = max_iterations
         self.dimension = len(bounds)
+
         self.employed_bees = self.colony_size // 2
         self.onlooker_bees = self.colony_size // 2
         self.limit = self.colony_size * self.dimension
         self.trial = np.zeros(self.employed_bees)
 
-        # Initialize food sources
         self.food_sources = np.random.uniform(
             low=[b[0] for b in bounds],
             high=[b[1] for b in bounds],
             size=(self.employed_bees, self.dimension)
         )
+
         self.fitness = np.array([self.calculate_fitness(
             self.objective_func(x)) for x in self.food_sources])
 
@@ -68,7 +68,6 @@ class abc_optimizer:
 
         for _ in range(self.onlooker_bees):
             i = np.random.choice(range(self.employed_bees), p=probabilities)
-
             k = np.random.choice(
                 [x for x in range(self.employed_bees) if x != i])
 
@@ -118,80 +117,18 @@ class abc_optimizer:
                 self.trial[i] = 0
 
     def optimize(self):
-        plt.ion()
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
-
-        x = np.linspace(self.bounds[0][0], self.bounds[0][1], 200)
-        y = np.linspace(self.bounds[1][0], self.bounds[1][1], 200)
-        X, Y = np.meshgrid(x, y)
-        Z = np.array([[self.objective_func([i, j]) for i in x] for j in y])
-
-        contour = ax1.contour(X, Y, Z, levels=50)
-        ax1.clabel(contour, inline=True, fontsize=8)
-        scatter = ax1.scatter([], [], c='red', marker='x')
-        ax1.set_title('Food Source Positions')
-
-        line1, = ax2.plot([], [], 'b-', label='Best Fitness')
-        line2, = ax2.plot([], [], 'r-', label='Mean Fitness')
-        ax2.set_xlim(0, self.max_iterations)
-        ax2.set_ylim(0, 1)
-        ax2.set_title('Convergence Plot')
-        ax2.legend()
-
-        x_data = []
-        best_data = []
-        mean_data = []
-
-        best_solution_ever = None
-        best_fitness_ever = float('-inf')
-
         for iteration in range(self.max_iterations):
             self.employed_bee_phase()
             self.onlooker_bee_phase()
             self.scout_bee_phase()
 
-            current_objectives = [self.objective_func(
-                x) for x in self.food_sources]
-            best_solution = np.min(current_objectives)
-            mean_solution = np.mean(current_objectives)
+            current_objectives = [self.objective_func(x)
+                                  for x in self.food_sources]
+            current_best = np.min(current_objectives)
+            current_mean = np.mean(current_objectives)
 
-            current_best_idx = np.argmin(current_objectives)
-            if self.fitness[current_best_idx] > best_fitness_ever:
-                best_fitness_ever = self.fitness[current_best_idx]
-                best_solution_ever = self.food_sources[current_best_idx].copy()
+            self.best_solutions.append(current_best)
+            self.mean_solutions.append(current_mean)
 
-            x_data.append(iteration)
-            best_data.append(self.calculate_fitness(best_solution))
-            mean_data.append(self.calculate_fitness(mean_solution))
-
-            scatter.set_offsets(self.food_sources)
-            line1.set_data(x_data, best_data)
-            line2.set_data(x_data, mean_data)
-
-            plt.draw()
-            plt.pause(0.05)
-
-        plt.ioff()
-        plt.show()
-
-        return best_solution_ever
-
-
-def rastrigin_function(x):
-    A = 10
-    n = len(x)
-    return A * n + sum([(xi**2 - A * np.cos(2 * np.pi * xi)) for xi in x])
-
-
-bounds = [(-5.12, 5.12), (-5.12, 5.12)]
-
-optimizer = abc_optimizer(
-    objective_func=rastrigin_function,
-    bounds=bounds,
-    colony_size=100,
-    max_iterations=100
-)
-
-best_solution = optimizer.optimize()
-print(f"Best solution found: {best_solution}")
-print(f"Best fitness: {rastrigin_function(best_solution)}")
+        best_idx = np.argmax(self.fitness)
+        return self.food_sources[best_idx]
